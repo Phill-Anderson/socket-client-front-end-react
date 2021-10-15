@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
 import { TextField } from '@material-ui/core'
 import useSocketService from './socket/useSocketService'
-
+import { io } from "socket.io-client";
+const socket = io('http://localhost:5000')
 function App() {
-  const [connectionStatus, socket] = useSocketService()
+  const [connectionStatus] = useSocketService()
 
   const [state, setState] = useState({ message: '', name: '' })
-  const [chat, setChat] = useState([])
+  const [chats, setChats] = useState([])
+  /*   useEffect(() => {
+      socket.on('message', ({ name, message }) => {
+        setChat([...chat, { name, message }])
+        console.log(`${name} -- ${message}`)
+      })
+    }) */
   useEffect(() => {
-    socket.on('message', ({ name, message }) => {
-      setChat([...chat, { name, message }])
-    })
+    console.log(`chats:`, chats)
+  }, [chats])
 
-  })
   const onTextChange = e => {
     setState({ ...state, [e.target.name]: e.target.value })
   }
@@ -21,19 +26,17 @@ function App() {
   const onMessageSubmit = (e) => {
     e.preventDefault()
     const { name, message } = state
-    socket.emit('message', { name, message })
+    socket.emit('message', { name, message }, (response) => {
+      const { name, message } = response
+      setChats([...chats, { name, message }])
+    })
     setState({ message: '', name })
   }
-  const renderChat = () => {
-    return chat.map(({ name, message }, index) => {
-      <div key={index}>
-        <h3>{name}: <span>{message}</span></h3>
-      </div>
-    })
-  }
+
   return (
     <>
       <h5 style={{ textAlign: 'center' }}>{connectionStatus}</h5>
+      <pre> {JSON.stringify(chats)}</pre>
       <div className="card">
         <form onSubmit={onMessageSubmit}>
           <h1>Мессэж</h1>
@@ -47,7 +50,16 @@ function App() {
         </form>
         <div className='render-chat'>
           <h1>Chat Log</h1>
-          {renderChat()}
+          {
+            chats.length > 0 ? chats.map((el, index) => {
+              const { name, message } = el
+              return (
+                <div key={index}>{name} : {message}</div>
+              )
+            })
+              :
+              'энэ chats массивт юу ч алга'
+          }
         </div>
       </div>
     </>
